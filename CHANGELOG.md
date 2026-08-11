@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2] — 2026-08-11
+
+### Fixed
+
+- `add_note` / `helpscout inbox thread note` now POST to `/v2/conversations/{id}/notes` with `{ text, user? }` instead of the broken `/threads/note` path ([#13](https://github.com/mobilelocker/helpscout-cli/issues/13))
+- Shared `buildCreateNoteRequest` so CLI and MCP use the same Create Note path and payload
+
 ## [1.5.1] — 2026-07-18
 
 ### Fixed

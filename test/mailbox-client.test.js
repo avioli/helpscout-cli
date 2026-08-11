@@ -186,3 +186,24 @@ test('mailbox.post returns id from Resource-ID header on 201 empty body', async 
     location: 'https://api.helpscout.net/v2/conversations/456',
   });
 });
+
+// ─── Create Note request builder (#13) ────────────────────────────────────────
+
+test('buildCreateNoteRequest uses /notes path and text field', async () => {
+  const { buildCreateNoteRequest } = await import('../src/mailbox-client.js');
+  const req = buildCreateNoteRequest(3415655265, { text: '<p>note</p>' });
+  assert.equal(req.path, '/conversations/3415655265/notes');
+  assert.deepEqual(req.body, { text: '<p>note</p>' });
+});
+
+test('buildCreateNoteRequest maps optional user id', async () => {
+  const { buildCreateNoteRequest } = await import('../src/mailbox-client.js');
+  const req = buildCreateNoteRequest(42, { text: 'hi', user: 99 });
+  assert.deepEqual(req.body, { text: 'hi', user: 99 });
+});
+
+test('buildCreateNoteRequest omits user when unset', async () => {
+  const { buildCreateNoteRequest } = await import('../src/mailbox-client.js');
+  const req = buildCreateNoteRequest(42, { text: 'hi' });
+  assert.equal('user' in req.body, false);
+});

@@ -321,7 +321,7 @@ describe('CLI text-or-file body loading', () => {
     );
   });
 
-  it('thread note from file posts file contents', async () => {
+  it('thread note from file posts to /notes with text payload', async () => {
     const root = makeCliRoot((r) => {
       const inbox = new Command('inbox');
       inbox.addCommand(makeThreadCommand());
@@ -330,9 +330,38 @@ describe('CLI text-or-file body loading', () => {
     await runCli(root, ['inbox', 'thread', 'note', '42', '--file', bodyFile]);
 
     assert.equal(fetchCalls.length, 1);
-    assert.match(fetchCalls[0].url, /\/conversations\/42\/threads\/note$/);
-    assert.equal(fetchCalls[0].body.type, 'note');
+    assert.match(
+      fetchCalls[0].url,
+      /^https:\/\/api\.helpscout\.net\/v2\/conversations\/42\/notes$/,
+    );
+    assert.equal(fetchCalls[0].method, 'POST');
     assert.equal(fetchCalls[0].body.text, '<p>File body content</p>\n');
+    assert.equal('type' in fetchCalls[0].body, false);
+  });
+
+  it('thread note with --user maps user field and posts to /notes', async () => {
+    const root = makeCliRoot((r) => {
+      const inbox = new Command('inbox');
+      inbox.addCommand(makeThreadCommand());
+      r.addCommand(inbox);
+    });
+    await runCli(root, [
+      'inbox',
+      'thread',
+      'note',
+      '42',
+      '--text',
+      '<p>Internal</p>',
+      '--user',
+      '99',
+    ]);
+
+    assert.equal(fetchCalls.length, 1);
+    assert.match(
+      fetchCalls[0].url,
+      /^https:\/\/api\.helpscout\.net\/v2\/conversations\/42\/notes$/,
+    );
+    assert.deepEqual(fetchCalls[0].body, { text: '<p>Internal</p>', user: 99 });
   });
 
   it('conversation create from file includes thread with file body', async () => {

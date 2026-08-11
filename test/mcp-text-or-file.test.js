@@ -261,3 +261,13 @@ test('CLI command sources wire --file for article and inbox content commands', (
   assert.match(conversations, /command\('create'\)[\s\S]*--file <path>/);
   assert.match(conversations, /paramNames:\s*\{\s*text:\s*'--body',\s*file:\s*'--file'\s*\}/);
 });
+
+test('CLI and MCP create notes via shared buildCreateNoteRequest', () => {
+  // Regression for #13: single request builder owns path + payload shape.
+  const threads = readFileSync(join(ROOT, 'src', 'commands', 'inbox', 'threads.js'), 'utf8');
+  const mcp = readFileSync(join(ROOT, 'src', 'mcp-server.js'), 'utf8');
+  assert.match(threads, /buildCreateNoteRequest/);
+  assert.match(mcp, /buildCreateNoteRequest/);
+  assert.doesNotMatch(threads, /threads\/note/);
+  assert.doesNotMatch(mcp, /threads\/note/);
+});

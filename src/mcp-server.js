@@ -7,7 +7,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { login, logout, status } from './auth.js';
-import { mailbox, buildCustomStatus } from './mailbox-client.js';
+import { mailbox, buildCustomStatus, buildCreateNoteRequest } from './mailbox-client.js';
 import { docs } from './docs-client.js';
 import { normalizeWriteResponse } from './http.js';
 import { registerDocsTools } from './mcp-server-docs.js';
@@ -366,9 +366,11 @@ server.registerTool(
   async ({ conversationId, text, filePath, userId }) => {
     try {
       const noteText = await resolveTextOrFile({ text, filePath, required: true });
-      const body = { type: 'note', body: noteText };
-      if (userId) body.userId = userId;
-      await mailbox.post(`/conversations/${conversationId}/threads/note`, body);
+      const { path, body } = buildCreateNoteRequest(conversationId, {
+        text: noteText,
+        user: userId,
+      });
+      await mailbox.post(path, body);
       return ok({ ok: true, conversationId });
     } catch (e) {
       return fail(e);

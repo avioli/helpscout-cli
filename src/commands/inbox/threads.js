@@ -2,7 +2,7 @@
  * helpscout inbox thread <action>
  */
 import { Command } from 'commander';
-import { mailbox } from '../../mailbox-client.js';
+import { mailbox, buildCreateNoteRequest } from '../../mailbox-client.js';
 import { output, outputTable } from '../../output.js';
 import { resolveTextOrFile } from '../../text-or-file.js';
 
@@ -82,10 +82,11 @@ export function makeThreadCommand() {
         required: true,
         paramNames: { text: '--text', file: '--file' },
       });
-      const body = { type: 'note', text };
-      if (opts.user) body.user = parseInt(opts.user);
-
-      await mailbox.post(`/conversations/${conversationId}/threads/note`, body);
+      const { path, body } = buildCreateNoteRequest(conversationId, {
+        text,
+        user: opts.user ? parseInt(opts.user, 10) : undefined,
+      });
+      await mailbox.post(path, body);
       output({ ok: true }, globalOpts);
     });
 

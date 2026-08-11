@@ -99,6 +99,20 @@ export function buildCustomStatus({ text, emoji, emojiName } = {}) {
   return customStatus;
 }
 
+/**
+ * Path and body for Mailbox API Create Note.
+ * POST /v2/conversations/{conversationId}/notes — not /threads/note (PATCH only).
+ * @see https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/note/
+ */
+export function buildCreateNoteRequest(conversationId, { text, user } = {}) {
+  const body = { text };
+  if (typeof user === 'number') body.user = user;
+  return {
+    path: `/conversations/${conversationId}/notes`,
+    body,
+  };
+}
+
 export const mailbox = {
   /**
    * GET a single page. Returns raw API response.
