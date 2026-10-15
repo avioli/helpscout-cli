@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.2-p1] - 2026-10-15
+
+Fork release (avioli/helpscout-cli) on top of 1.5.2.
+
+### Added
+
+- `inbox conversation list --number <n>` finds a conversation by the number shown in the web UI, searching all statuses unless `--status` is given; list tables (CLI and MCP markdown) include a Number column
+- `inbox conversation get` and `inbox thread list` accept a conversation ID or web UI number: values below 100000 are tried as a number first, larger ones as an ID first, falling back to the other
+- `inbox conversation get --threads` embeds all threads; pretty/markdown output renders a plain-text transcript (oldest first, HTML converted to text, lines trimmed), JSON keeps the raw API response
+- MCP: `list_conversations` takes `number`; `get_conversation` accepts a number and takes `threads` and `transcript`
+
+### Fixed
+
+- `npm test` no longer overwrites the real `~/.cache/helpscout/token.json` (which logged the user out); tests now run with `HOME` pointed at a throwaway temp directory
+
 ## [1.5.2] — 2026-08-11
 
 ### Fixed
