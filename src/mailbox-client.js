@@ -159,3 +159,40 @@ export const mailbox = {
     return request('DELETE', path);
   },
 };
+
+// Conversation numbers (shown in the web UI) are small and sequential per
+// account; IDs are large. Values below this are tried as a number first.
+export const CONVERSATION_NUMBER_THRESHOLD = 100000;
+
+/**
+ * Fetch a conversation given either its ID or its web UI number.
+ * Tries the more likely interpretation first, falling back to the other.
+ * `params` are passed to the final GET (e.g. `{ embed: 'threads' }`).
+ */
+export async function getConversationByIdOrNumber(value, { params, client = mailbox } = {}) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`Invalid conversation ID or number: ${value}`);
+  }
+
+  const byId = async () => {
+    try {
+      return await client.get(`/conversations/${n}`, params);
+    } catch (e) {
+      if (e.status === 404) return null;
+      throw e;
+    }
+  };
+  const byNumber = async () => {
+    const data = await client.get('/conversations', { number: n, status: 'all' });
+    const match = data?._embedded?.conversations?.[0];
+    return match ? client.get(`/conversations/${match.id}`, params) : null;
+  };
+
+  const order = n < CONVERSATION_NUMBER_THRESHOLD ? [byNumber, byId] : [byId, byNumber];
+  for (const attempt of order) {
+    const found = await attempt();
+    if (found) return found;
+  }
+  throw Object.assign(new Error(`Conversation not found by ID or number: ${n}`), { status: 404 });
+}

@@ -7,7 +7,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { login, logout, status } from './auth.js';
-import { mailbox, buildCustomStatus, buildCreateNoteRequest } from './mailbox-client.js';
+import { formatTranscript } from './transcript.js';
+import {
+  mailbox,
+  buildCustomStatus,
+  buildCreateNoteRequest,
+  getConversationByIdOrNumber,
+} from './mailbox-client.js';
 import { docs } from './docs-client.js';
 import { normalizeWriteResponse } from './http.js';
 import { registerDocsTools } from './mcp-server-docs.js';
@@ -119,17 +125,27 @@ server.registerTool(
         .describe('Filter by status (default: active)'),
       tag: z.string().optional().describe('Filter by tag name'),
       assignedTo: z.number().optional().describe('Filter by assigned user ID'),
+      number: z
+        .number()
+        .optional()
+        .describe(
+          'Find by conversation number shown in the web UI (not the ID); searches all statuses unless status is given',
+        ),
       all: z.boolean().optional().describe('Fetch all pages (default: returns first page only)'),
       markdown: z.boolean().optional().describe('Return a Markdown table instead of JSON'),
     },
   },
-  async ({ mailboxId, status, tag, assignedTo, all, markdown }) => {
+  async ({ mailboxId, status, tag, assignedTo, number, all, markdown }) => {
     try {
       const params = {};
       if (mailboxId) params.mailboxId = mailboxId;
       if (status) params.status = status;
       if (tag) params.tag = tag;
       if (assignedTo) params.assignedTo = assignedTo;
+      if (number) {
+        params.number = number;
+        if (!status) params.status = 'all';
+      }
       const rows = all
         ? await mailbox.getAll('/conversations', 'conversations', params)
         : ((await mailbox.get('/conversations', params))?._embedded?.conversations ?? []);
@@ -141,6 +157,7 @@ server.registerTool(
           })),
           [
             { key: 'id', header: 'ID' },
+            { key: 'number', header: 'Number' },
             { key: 'subject', header: 'Subject' },
             { key: 'status', header: 'Status' },
             { key: 'assignee', header: 'Assignee' },
@@ -158,14 +175,29 @@ server.registerTool(
 server.registerTool(
   'get_conversation',
   {
-    description: 'Get a single conversation by ID, including all fields.',
+    description:
+      'Get a single conversation by ID or by the number shown in the web UI, including all fields.',
     inputSchema: {
-      id: z.number().describe('Conversation ID'),
+      id: z
+        .number()
+        .describe(
+          'Conversation ID or web UI number (values below 100000 are tried as a number first)',
+        ),
+      threads: z.boolean().optional().describe('Include all threads with full message bodies'),
+      transcript: z
+        .boolean()
+        .optional()
+        .describe('With threads: return a plain-text transcript (oldest first) instead of JSON'),
     },
   },
-  async ({ id }) => {
+  async ({ id, threads, transcript }) => {
     try {
-      return ok(await mailbox.get(`/conversations/${id}`));
+      if (threads) {
+        const data = await getConversationByIdOrNumber(id, { params: { embed: 'threads' } });
+        if (transcript) return { content: [{ type: 'text', text: formatTranscript(data) }] };
+        return ok(data);
+      }
+      return ok(await getConversationByIdOrNumber(id));
     } catch (e) {
       return fail(e);
     }

@@ -2,12 +2,14 @@
  * helpscout inbox conversation <action>
  */
 import { Command } from 'commander';
-import { mailbox } from '../../mailbox-client.js';
+import { mailbox, getConversationByIdOrNumber } from '../../mailbox-client.js';
 import { output, outputTable } from '../../output.js';
 import { resolveTextOrFile } from '../../text-or-file.js';
+import { formatTranscript } from '../../transcript.js';
 
 const COLUMNS = [
   { key: 'id', header: 'ID' },
+  { key: 'number', header: 'Number' },
   { key: 'subject', header: 'Subject' },
   { key: 'status', header: 'Status' },
   { key: 'mailboxId', header: 'Mailbox' },
@@ -33,6 +35,10 @@ export function makeConversationCommand() {
     .option('--status <status>', 'Filter by status (active, closed, spam, pending)', 'active')
     .option('--tag <tag>', 'Filter by tag')
     .option('--assigned-to <userId>', 'Filter by assigned user ID')
+    .option(
+      '--number <n>',
+      'Find by conversation number shown in the web UI (searches all statuses)',
+    )
     .option('--page <n>', 'Page number', '1')
     .option('--all', 'Fetch all pages')
     .action(async (opts, cmd) => {
@@ -42,6 +48,11 @@ export function makeConversationCommand() {
       if (opts.status) params.status = opts.status;
       if (opts.tag) params.tag = opts.tag;
       if (opts.assignedTo) params.assignedTo = opts.assignedTo;
+      if (opts.number) {
+        params.number = opts.number;
+        // A number is unique; don't let the default `active` status hide it.
+        if (cmd.getOptionValueSource('status') === 'default') params.status = 'all';
+      }
 
       if (opts.all) {
         const items = await mailbox.getAll('/conversations', 'conversations', params);
@@ -55,11 +66,19 @@ export function makeConversationCommand() {
     });
 
   cmd
-    .command('get <id>')
-    .description('Get a conversation by ID')
-    .action(async (id, opts, cmd) => {
+    .command('get <idOrNumber>')
+    .description('Get a conversation by ID or by the number shown in the web UI')
+    .option('--threads', 'Include all threads (full message bodies); shown as a transcript')
+    .action(async (idOrNumber, opts, cmd) => {
       const globalOpts = cmd.optsWithGlobals();
-      const data = await mailbox.get(`/conversations/${id}`);
+      if (opts.threads) {
+        const data = await getConversationByIdOrNumber(idOrNumber, {
+          params: { embed: 'threads' },
+        });
+        output(data, globalOpts, formatTranscript);
+        return;
+      }
+      const data = await getConversationByIdOrNumber(idOrNumber);
       output(data, globalOpts);
     });
 

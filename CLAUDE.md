@@ -126,10 +126,12 @@ helpscout inbox conversation list [options]
   --status <s>         active (default) | closed | spam | pending
   --tag <tag>          filter by tag name
   --assigned-to <uid>  filter by assigned user ID
+  --number <n>         find by web UI conversation number (all statuses unless --status)
   --page <n>           page number (default: 1)
   --all                fetch all pages
 
-helpscout inbox conversation get <id>
+helpscout inbox conversation get <id-or-number>   # number = web UI #; <100000 tried as number first
+  --threads            include all threads (full bodies); pretty mode prints a transcript
 
 helpscout inbox conversation create [options]
   --subject <text>         (required)

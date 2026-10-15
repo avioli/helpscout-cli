@@ -2,7 +2,11 @@
  * helpscout inbox thread <action>
  */
 import { Command } from 'commander';
-import { mailbox, buildCreateNoteRequest } from '../../mailbox-client.js';
+import {
+  mailbox,
+  buildCreateNoteRequest,
+  getConversationByIdOrNumber,
+} from '../../mailbox-client.js';
 import { output, outputTable } from '../../output.js';
 import { resolveTextOrFile } from '../../text-or-file.js';
 
@@ -28,11 +32,12 @@ export function makeThreadCommand() {
   cmd.description('Manage conversation threads');
 
   cmd
-    .command('list <conversationId>')
-    .description('List threads for a conversation')
+    .command('list <conversationIdOrNumber>')
+    .description('List threads for a conversation (by ID or web UI number)')
     .option('--all', 'Fetch all pages')
-    .action(async (conversationId, opts, cmd) => {
+    .action(async (idOrNumber, opts, cmd) => {
       const globalOpts = cmd.optsWithGlobals();
+      const { id: conversationId } = await getConversationByIdOrNumber(idOrNumber);
       if (opts.all) {
         const items = await mailbox.getAll(`/conversations/${conversationId}/threads`, 'threads');
         outputTable(items.map(flattenThread), COLUMNS, globalOpts);

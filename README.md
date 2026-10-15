@@ -110,8 +110,15 @@ helpscout inbox conversation list --mailbox <mailbox-id>
 # All pages, closed conversations, filtered by tag
 helpscout inbox conversation list --status closed --tag billing --all
 
-# Get a single conversation
+# Find a conversation by the number shown in the web UI (searches all statuses)
+helpscout inbox conversation list --number 18527
+
+# Get a single conversation by ID or web UI number
 helpscout inbox conversation get <id>
+helpscout inbox conversation get 18527
+
+# Read the whole conversation (all messages, replies and notes) as a transcript
+helpscout inbox conversation get 18527 --threads
 
 # Create a conversation
 helpscout inbox conversation create \
