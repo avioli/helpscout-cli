@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import {
   mailbox,
   buildCreateNoteRequest,
+  buildCreateReplyRequest,
   getConversationByIdOrNumber,
 } from '../../mailbox-client.js';
 import { output, outputTable } from '../../output.js';
@@ -50,12 +51,13 @@ export function makeThreadCommand() {
 
   cmd
     .command('reply <conversationId>')
-    .description('Create a reply thread')
+    .description('Create a reply thread (conversation ID or web UI number)')
     .option('--text <text>', 'Reply text (HTML allowed; required unless --file)')
     .option('--file <path>', 'Read reply text from file (alternative to --text)')
     .option('--user <userId>', 'Author user ID')
     .option('--cc <emails>', 'Comma-separated CC addresses')
     .option('--bcc <emails>', 'Comma-separated BCC addresses')
+    .option('--draft', 'Save as a draft instead of sending')
     .action(async (conversationId, opts, cmd) => {
       const globalOpts = cmd.optsWithGlobals();
       const text = await resolveTextOrFile({
@@ -64,13 +66,18 @@ export function makeThreadCommand() {
         required: true,
         paramNames: { text: '--text', file: '--file' },
       });
-      const body = { type: 'reply', text };
-      if (opts.user) body.user = parseInt(opts.user);
-      if (opts.cc) body.cc = opts.cc.split(',').map((s) => s.trim());
-      if (opts.bcc) body.bcc = opts.bcc.split(',').map((s) => s.trim());
-
-      await mailbox.post(`/conversations/${conversationId}/threads/reply`, body);
-      output({ ok: true }, globalOpts);
+      const conversation = await getConversationByIdOrNumber(conversationId);
+      const splitList = (v) => v?.split(',').map((s) => s.trim());
+      const { path, body } = buildCreateReplyRequest(conversation.id, {
+        customerId: conversation.primaryCustomer?.id,
+        text,
+        user: opts.user ? parseInt(opts.user, 10) : undefined,
+        cc: splitList(opts.cc),
+        bcc: splitList(opts.bcc),
+        draft: opts.draft,
+      });
+      await mailbox.post(path, body);
+      output({ ok: true, id: conversation.id, draft: !!opts.draft }, globalOpts);
     });
 
   cmd

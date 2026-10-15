@@ -207,3 +207,32 @@ test('buildCreateNoteRequest omits user when unset', async () => {
   const req = buildCreateNoteRequest(42, { text: 'hi' });
   assert.equal('user' in req.body, false);
 });
+
+// ─── Create Reply request builder ────────────────────────────────────────────
+
+test('buildCreateReplyRequest uses /reply path with customer and text', async () => {
+  const { buildCreateReplyRequest } = await import('../src/mailbox-client.js');
+  const req = buildCreateReplyRequest(42, { customerId: 7, text: '<p>hi</p>' });
+  assert.equal(req.path, '/conversations/42/reply');
+  assert.deepEqual(req.body, { customer: { id: 7 }, text: '<p>hi</p>' });
+});
+
+test('buildCreateReplyRequest maps draft, user, cc and bcc', async () => {
+  const { buildCreateReplyRequest } = await import('../src/mailbox-client.js');
+  const req = buildCreateReplyRequest(42, {
+    customerId: 7,
+    text: 'hi',
+    user: 99,
+    cc: ['a@b.com'],
+    bcc: ['c@d.com'],
+    draft: true,
+  });
+  assert.deepEqual(req.body, {
+    customer: { id: 7 },
+    text: 'hi',
+    user: 99,
+    cc: ['a@b.com'],
+    bcc: ['c@d.com'],
+    draft: true,
+  });
+});

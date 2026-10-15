@@ -44,6 +44,18 @@ describe('CLI text-or-file body loading', () => {
         method: opts.method ?? 'GET',
         body: typeof opts.body === 'string' ? JSON.parse(opts.body) : opts.body,
       });
+      // Conversation lookups (thread reply resolves the primary customer first).
+      const convo = String(url).match(/\/v2\/conversations\/(\d+)(?:\?|$)/);
+      if ((opts.method ?? 'GET') === 'GET' && convo) {
+        const data = { id: Number(convo[1]), primaryCustomer: { id: 7 } };
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          text: async () => JSON.stringify(data),
+          json: async () => data,
+        };
+      }
       return {
         ok: true,
         status: 201,
@@ -287,15 +299,14 @@ describe('CLI text-or-file body loading', () => {
       inbox.addCommand(makeThreadCommand());
       r.addCommand(inbox);
     });
-    await runCli(root, ['inbox', 'thread', 'reply', '42', '--file', bodyFile]);
+    await runCli(root, ['inbox', 'thread', 'reply', '123456', '--file', bodyFile]);
 
-    assert.equal(fetchCalls.length, 1);
-    assert.match(
-      fetchCalls[0].url,
-      /^https:\/\/api\.helpscout\.net\/v2\/conversations\/42\/threads\/reply$/,
-    );
-    assert.equal(fetchCalls[0].body.type, 'reply');
-    assert.equal(fetchCalls[0].body.text, '<p>File body content</p>\n');
+    const posts = fetchCalls.filter((c) => c.method === 'POST');
+    assert.equal(posts.length, 1);
+    assert.match(posts[0].url, /^https:\/\/api\.helpscout\.net\/v2\/conversations\/123456\/reply$/);
+    assert.deepEqual(posts[0].body.customer, { id: 7 });
+    assert.equal(posts[0].body.text, '<p>File body content</p>\n');
+    assert.equal('draft' in posts[0].body, false);
   });
 
   it('thread reply from inline text posts that text', async () => {
@@ -304,9 +315,22 @@ describe('CLI text-or-file body loading', () => {
       inbox.addCommand(makeThreadCommand());
       r.addCommand(inbox);
     });
-    await runCli(root, ['inbox', 'thread', 'reply', '42', '--text', '<p>Thanks</p>']);
+    await runCli(root, ['inbox', 'thread', 'reply', '123456', '--text', '<p>Thanks</p>']);
 
-    assert.equal(fetchCalls[0].body.text, '<p>Thanks</p>');
+    const post = fetchCalls.find((c) => c.method === 'POST');
+    assert.equal(post.body.text, '<p>Thanks</p>');
+  });
+
+  it('thread reply --draft saves a draft instead of sending', async () => {
+    const root = makeCliRoot((r) => {
+      const inbox = new Command('inbox');
+      inbox.addCommand(makeThreadCommand());
+      r.addCommand(inbox);
+    });
+    await runCli(root, ['inbox', 'thread', 'reply', '123456', '--text', 'x', '--draft']);
+
+    const post = fetchCalls.find((c) => c.method === 'POST');
+    assert.equal(post.body.draft, true);
   });
 
   it('thread reply requires text or file', async () => {

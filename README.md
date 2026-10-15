@@ -131,6 +131,7 @@ helpscout inbox conversation create \
 # Reply and add an internal note
 helpscout inbox thread reply <id> --text "<p>We're looking into this.</p>"
 helpscout inbox thread reply <id> --file ./reply.html
+helpscout inbox thread reply <id> --file ./reply.html --draft   # save as draft, don't send
 helpscout inbox thread note <id> --text "<p>Escalated to engineering.</p>"
 helpscout inbox thread note <id> --file ./note.html
 

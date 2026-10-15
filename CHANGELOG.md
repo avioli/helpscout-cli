@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.2-p2] - 2026-10-15
+
+Fork release (avioli/helpscout-cli) on top of 1.5.2.
+
+### Added
+
+- `inbox thread reply --draft` saves the reply as a draft in Help Scout instead of sending it; MCP `reply_to_conversation` takes `draft: true`
+- `inbox thread reply` accepts a conversation ID or web UI number
+
+### Fixed
+
+- `reply_to_conversation` / `helpscout inbox thread reply` now POST to `/v2/conversations/{id}/reply` with the conversation's primary customer instead of the broken `/threads/reply` path (PATCH only)
+- MCP `reply_to_conversation` sends `text` and `user` instead of the ignored `body` and `userId` fields
+- Shared `buildCreateReplyRequest` so CLI and MCP use the same Create Reply path and payload
+
 ## [1.5.2-p1] - 2026-10-15
 
 Fork release (avioli/helpscout-cli) on top of 1.5.2.

@@ -12,6 +12,7 @@ import {
   mailbox,
   buildCustomStatus,
   buildCreateNoteRequest,
+  buildCreateReplyRequest,
   getConversationByIdOrNumber,
 } from './mailbox-client.js';
 import { docs } from './docs-client.js';
@@ -360,17 +361,24 @@ server.registerTool(
       userId: z.number().optional().describe('Author user ID (defaults to token owner)'),
       cc: z.string().optional().describe('Comma-separated CC email addresses'),
       bcc: z.string().optional().describe('Comma-separated BCC email addresses'),
+      draft: z.boolean().optional().describe('Save as a draft instead of sending'),
     },
   },
-  async ({ conversationId, text, filePath, userId, cc, bcc }) => {
+  async ({ conversationId, text, filePath, userId, cc, bcc, draft }) => {
     try {
       const replyText = await resolveTextOrFile({ text, filePath, required: true });
-      const body = { type: 'reply', body: replyText };
-      if (userId) body.userId = userId;
-      if (cc) body.cc = cc.split(',').map((s) => s.trim());
-      if (bcc) body.bcc = bcc.split(',').map((s) => s.trim());
-      await mailbox.post(`/conversations/${conversationId}/threads/reply`, body);
-      return ok({ ok: true, conversationId });
+      const conversation = await getConversationByIdOrNumber(conversationId);
+      const splitList = (v) => v?.split(',').map((s) => s.trim());
+      const { path, body } = buildCreateReplyRequest(conversation.id, {
+        customerId: conversation.primaryCustomer?.id,
+        text: replyText,
+        user: userId,
+        cc: splitList(cc),
+        bcc: splitList(bcc),
+        draft,
+      });
+      await mailbox.post(path, body);
+      return ok({ ok: true, conversationId: conversation.id, draft: !!draft });
     } catch (e) {
       return fail(e);
     }

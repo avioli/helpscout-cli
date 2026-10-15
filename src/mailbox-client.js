@@ -100,6 +100,27 @@ export function buildCustomStatus({ text, emoji, emojiName } = {}) {
 }
 
 /**
+ * Path and body for Mailbox API Create Reply.
+ * POST /v2/conversations/{conversationId}/reply -- not /threads/reply (PATCH only).
+ * The API requires the customer the reply is addressed to; draft: true saves without sending.
+ * @see https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/reply/
+ */
+export function buildCreateReplyRequest(
+  conversationId,
+  { customerId, text, user, cc, bcc, draft } = {},
+) {
+  const body = { customer: { id: customerId }, text };
+  if (typeof user === 'number') body.user = user;
+  if (cc?.length) body.cc = cc;
+  if (bcc?.length) body.bcc = bcc;
+  if (draft) body.draft = true;
+  return {
+    path: `/conversations/${conversationId}/reply`,
+    body,
+  };
+}
+
+/**
  * Path and body for Mailbox API Create Note.
  * POST /v2/conversations/{conversationId}/notes — not /threads/note (PATCH only).
  * @see https://developer.helpscout.com/mailbox-api/endpoints/conversations/threads/note/

@@ -158,12 +158,13 @@ helpscout inbox conversation delete <id>
 ```
 helpscout inbox thread list <conversationId> [--all]
 
-helpscout inbox thread reply <conversationId> [options]
+helpscout inbox thread reply <id-or-number> [options]
   --text <html>    (required unless --file)
   --file <path>    read reply from file (alternative to --text)
   --user <uid>
   --cc <emails>    comma-separated
   --bcc <emails>   comma-separated
+  --draft          save as a draft in Help Scout instead of sending
 
 helpscout inbox thread note <conversationId> [options]
   --text <html>    (required unless --file)
@@ -359,6 +360,7 @@ helpscout inbox conversation list --mailbox <mailbox-id> --status active --all
 ```sh
 helpscout inbox thread reply <id> --text "Thanks for reaching out!"
 helpscout inbox thread reply <id> --file ./reply.html
+helpscout inbox thread reply <id> --file ./reply.html --draft   # save, don't send
 helpscout inbox thread note <id> --file ./note.html
 ```
 
